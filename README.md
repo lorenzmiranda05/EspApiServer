@@ -1,5 +1,10 @@
-### **ESP8266 Lite Template**
-Template to be used for ESP8266-based boards with small flash memory.
+### **ESP8266 API Server**
+Will be used as reference for the development of future projects:
+* ESP Home Bare-bones
+* PID Controlled Sous Vide Machine
+
+###### **Used ESP8266 Lite Template**
+
 
 ---
 

@@ -4,12 +4,14 @@
 #include <ESP8266WiFiMulti.h>
 #include <ArduinoOTA.h>
 #include <TelnetStream.h>
+#include <ESP8266WebServer.h>
 
 #define JsonConfigFile "/config.json"
 
 ESP8266WiFiMulti WiFiMulti;
 char espName[15];
 int broadcastDeviceDetails = 1;
+ESP8266WebServer server(80);
 
 class Schedule
 {
@@ -180,4 +182,22 @@ void wifiReconnet()
     {
         WiFiMulti.run();
     }
+}
+
+void handle_OnConnect()
+{
+    String output;
+    StaticJsonDocument<48> doc;
+    doc["message"] = "Welcome to the ESP8266 API Server!";
+    serializeJson(doc, output);
+    server.send(200, "text/html", output);
+}
+
+void handle_NotFound()
+{
+    String output;
+    StaticJsonDocument<48> doc;
+    doc["message"] = "Not found!";
+    serializeJson(doc, output);
+    server.send(404, "text/html", output);
 }
