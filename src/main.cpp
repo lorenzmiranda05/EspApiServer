@@ -11,8 +11,8 @@ void setup()
   wifiReconnectSchedule.interval = 60000;
   broadcastSchedule.storedMillis = 0;
   broadcastSchedule.interval = 5000;
-  server.on("/", handle_OnConnect);
-  server.onNotFound(handle_NotFound);
+  server.on("/", handleRoot);
+  server.onNotFound(handleNotFound);
   server.begin();
 }
 

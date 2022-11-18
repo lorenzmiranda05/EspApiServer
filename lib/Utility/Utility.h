@@ -12,6 +12,8 @@ ESP8266WiFiMulti WiFiMulti;
 char espName[15];
 int broadcastDeviceDetails = 1;
 ESP8266WebServer server(80);
+char apiUser[20];
+char apiPassword[20];
 
 class Schedule
 {
@@ -110,7 +112,14 @@ bool loadConfigFile()
         if (configFile)
         {
             serialAndTelnetPrintln(F("Opened config"));
-            StaticJsonDocument<512> json;
+            /*
+            Size increase in config.json file or other files in the file system may
+            fail json deserialization. Use https://arduinojson.org/v6/assistant/ to
+            check json document size. Choose StaticJsonDocument for small documents
+            (below 1KB) and switch to a DynamicJsonDocument if it’s too large to fit
+            in the stack memory. Source: https://arduinojson.org/v6/api/staticjsondocument/
+            */
+            StaticJsonDocument<768> json;
             DeserializationError error = deserializeJson(json, configFile);
             if (!error)
             {
@@ -125,6 +134,8 @@ bool loadConfigFile()
                 IPAddress local_IP(json["ipAddress"][0].as<int>(), json["ipAddress"][1].as<int>(), json["ipAddress"][2].as<int>(), json["ipAddress"][3].as<int>());
                 WiFi.config(local_IP, gateway, subnet);
                 ArduinoOTA.setPassword(json["otaPassword"]);
+                strcpy(apiUser, json["api"]["user"]);
+                strcpy(apiPassword, json["api"]["password"]);
                 return true;
             }
             else
@@ -184,20 +195,30 @@ void wifiReconnet()
     }
 }
 
-void handle_OnConnect()
+void apiAuthentication()
 {
+    if (!server.authenticate(apiUser, apiPassword))
+    {
+        return server.requestAuthentication();
+    }
+}
+
+void handleRoot()
+{
+    apiAuthentication();
     String output;
-    StaticJsonDocument<48> doc;
-    doc["message"] = "Welcome to the ESP8266 API Server!";
+    StaticJsonDocument<64> doc;
+    doc["message"] = "Welcome to the ESP8266 API Server";
     serializeJson(doc, output);
     server.send(200, "text/html", output);
 }
 
-void handle_NotFound()
+void handleNotFound()
 {
+    apiAuthentication();
     String output;
     StaticJsonDocument<48> doc;
-    doc["message"] = "Not found!";
+    doc["message"] = "Endpoint not found";
     serializeJson(doc, output);
     server.send(404, "text/html", output);
 }
