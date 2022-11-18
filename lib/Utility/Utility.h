@@ -98,7 +98,7 @@ void serialAndTelnetPrintln(String message)
     TelnetStream.println(message);
 }
 
-bool loadConfigFile()
+void loadConfiguration()
 {
     // Read configuration from FS json
     serialAndTelnetPrintln(F("Mounting FS"));
@@ -136,7 +136,6 @@ bool loadConfigFile()
                 ArduinoOTA.setPassword(json["otaPassword"]);
                 strcpy(apiUser, json["api"]["user"]);
                 strcpy(apiPassword, json["api"]["password"]);
-                return true;
             }
             else
             {
@@ -148,7 +147,6 @@ bool loadConfigFile()
     {
         serialAndTelnetPrintln(F("Mount FS failed"));
     }
-    return false;
 }
 
 void setupOTA()
@@ -187,7 +185,7 @@ void setupOTA()
     serialAndTelnetPrintln(F("ESPOTA READY"));
 }
 
-void wifiReconnet()
+void wifiReconnect()
 {
     if ((WiFi.status() != WL_CONNECTED) && wifiReconnectSchedule.checkMillis())
     {
@@ -209,6 +207,19 @@ void handleRoot()
     String output;
     StaticJsonDocument<64> doc;
     doc["message"] = "Welcome to the ESP8266 API Server";
+    serializeJson(doc, output);
+    server.send(200, "text/html", output);
+}
+
+void handleDeviceDetails()
+{
+    apiAuthentication();
+    String output;
+    StaticJsonDocument<192> doc;
+    doc["deviceName"] = espName;
+    doc["wifiConnection"] = WiFi.SSID();
+    doc["macAddress"] = WiFi.macAddress();
+    doc["ipAddress"] = WiFi.localIP();
     serializeJson(doc, output);
     server.send(200, "text/html", output);
 }
