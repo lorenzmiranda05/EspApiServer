@@ -23,24 +23,28 @@ Will be used as reference for the development of future projects:
 1. The config.json file looks like this:
     ```
     {
-        "deviceType" : "ESP01",
+        "deviceType" : "ESP12F",
         "broadcastDeviceDetails" : 0,
-        "ipAddress" : [192, 168, 1, 69],
+        "ipAddress" : [192, 168, 1, 72],
         "otaPassword" : "12345",
         "accessPoint" : [
-                            {
-                                "ssid": "WiFi1",
-                                "password": "12345"
-                            },
-                            {
-                                "ssid": "WiFi2",
-                                "password": "12345"
-                            },
-                            {
-                                "ssid": "WiFi3",
-                                "password": "12345"
-                            }
-                        ]
+            {
+                "ssid": "WiFi1",
+                "password": "12345"
+            },
+            {
+                "ssid": "WiFi2",
+                "password": "12345"
+            },
+            {
+                "ssid": "WiFi3",
+                "password": "12345"
+            }
+        ],
+        "api" : {
+            "user": "admin",
+            "password": "12345"
+        }
     }
     ```
 
@@ -69,6 +73,10 @@ Will be used as reference for the development of future projects:
 |&nbsp; &nbsp; &nbsp;|&nbsp; &nbsp; &nbsp;|-- ESP8266mDNS @ 1.2
 <br  />
 |&nbsp; &nbsp; &nbsp;|&nbsp; &nbsp; &nbsp;|&nbsp; &nbsp; &nbsp;|-- ESP8266WiFi @ 1.0
+<br  />
+|&nbsp; &nbsp; &nbsp;|-- ESP8266WebServer @ 1.0
+<br  />
+|&nbsp; &nbsp; &nbsp;|&nbsp; &nbsp; &nbsp;|-- ESP8266WiFi @ 1.0
 <br  />
 |&nbsp; &nbsp; &nbsp;|-- ESP8266WiFi @ 1.0
 <br  />
