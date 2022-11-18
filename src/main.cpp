@@ -5,20 +5,21 @@ void setup()
 {
   Serial.begin(921600);
   TelnetStream.begin();
-  loadConfigFile();
+  loadConfiguration();
   setupOTA();
   wifiReconnectSchedule.storedMillis = 60000; // run immediately using "negative" unsigned long
   wifiReconnectSchedule.interval = 60000;
   broadcastSchedule.storedMillis = 0;
   broadcastSchedule.interval = 5000;
   server.on("/", handleRoot);
+  server.on("/deviceDetails", handleDeviceDetails);
   server.onNotFound(handleNotFound);
   server.begin();
 }
 
 void loop()
 {
-  wifiReconnet();
+  wifiReconnect();
   if (WiFi.status() == WL_CONNECTED)
   {
     ArduinoOTA.handle(); // Always run when WiFi is connected
