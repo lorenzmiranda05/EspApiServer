@@ -11,8 +11,13 @@ void setup()
   wifiReconnectSchedule.interval = 60000;
   broadcastSchedule.storedMillis = 0;
   broadcastSchedule.interval = 5000;
+  pinMode(LedPin, OUTPUT);
+  digitalWrite(LedPin, LOW);
   server.on("/", handleRoot);
-  server.on("/deviceDetails", handleDeviceDetails);
+  server.on("/deviceDetails", HTTP_GET, handleDeviceDetails);
+  server.on("/temperature/celcius", HTTP_GET, handleTemperatureCelcius);
+  server.on("/temperature/fahrenheit", HTTP_GET, handleTemperatureFahrenheit);
+  server.on("/blinkLed", HTTP_POST, handleBlinkLed);
   server.onNotFound(handleNotFound);
   server.begin();
 }
@@ -47,4 +52,19 @@ void loop()
   }
 
   /*DO SOME NON-WIFI RELATED STUFF*/
+  if (blinkStatus)
+  {
+    if (blinkSchedule.checkMillis())
+    {
+      digitalWrite(LedPin, !digitalRead(LedPin));
+    }
+  }
+
+  if (blinkStatusSchedule.checkMillis())
+  {
+    if (blinkStatus)
+    {
+      blinkStatus = false;
+    }
+  }
 }

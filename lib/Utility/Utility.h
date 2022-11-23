@@ -5,8 +5,12 @@
 #include <ArduinoOTA.h>
 #include <TelnetStream.h>
 #include <ESP8266WebServer.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 #define JsonConfigFile "/config.json"
+#define OneWirePin 10
+#define LedPin D2
 
 ESP8266WiFiMulti WiFiMulti;
 char espName[15];
@@ -36,6 +40,17 @@ public:
 Schedule wifiReconnectSchedule;
 Schedule broadcastSchedule;
 
+OneWire oneWire(OneWirePin);
+// Pass oneWire reference to Dallas Temperature sensor
+DallasTemperature sensors(&oneWire);
+float previousTempC = 0;
+float previousTempF = 0;
+bool ledPinStatus = LOW;
+
+bool blinkStatus = false;
+Schedule blinkSchedule;
+Schedule blinkStatusSchedule;
+
 void serialAndTelnetPrint(__FlashStringHelper *message)
 {
     Serial.print(message);
@@ -52,6 +67,11 @@ void serialAndTelnetPrint(int message)
     TelnetStream.print(message);
 }
 void serialAndTelnetPrint(float message)
+{
+    Serial.print(message);
+    TelnetStream.print(message);
+}
+void serialAndTelnetPrint(unsigned long message)
 {
     Serial.print(message);
     TelnetStream.print(message);
@@ -83,6 +103,11 @@ void serialAndTelnetPrintln(int message)
     TelnetStream.println(message);
 }
 void serialAndTelnetPrintln(float message)
+{
+    Serial.println(message);
+    TelnetStream.println(message);
+}
+void serialAndTelnetPrintln(unsigned long message)
 {
     Serial.println(message);
     TelnetStream.println(message);
@@ -193,6 +218,42 @@ void wifiReconnect()
     }
 }
 
+float sensorDataCelsius()
+{
+    // Call sensors.requestTemperatures() to issue a global temperature and Requests to all devices on the bus
+    sensors.requestTemperatures();
+    float tempC = sensors.getTempCByIndex(0);
+
+    // Suppress no reading (-127)
+    if (tempC == -127)
+    {
+        tempC = previousTempC;
+    }
+    else
+    {
+        previousTempC = tempC;
+    }
+    return tempC;
+}
+
+float sensorDataFahrenheit()
+{
+    // Call sensors.requestTemperatures() to issue a global temperature and Requests to all devices on the bus
+    sensors.requestTemperatures();
+    float tempF = sensors.getTempFByIndex(0);
+
+    // Suppress no reading (-196)
+    if (tempF == -196)
+    {
+        tempF = previousTempF;
+    }
+    else
+    {
+        previousTempF = tempF;
+    }
+    return tempF;
+}
+
 void apiAuthentication()
 {
     if (!server.authenticate(apiUser, apiPassword))
@@ -208,7 +269,7 @@ void handleRoot()
     StaticJsonDocument<64> doc;
     doc["message"] = "Welcome to the ESP8266 API Server";
     serializeJson(doc, output);
-    server.send(200, "text/html", output);
+    server.send(200, "application/json", output);
 }
 
 void handleDeviceDetails()
@@ -221,7 +282,74 @@ void handleDeviceDetails()
     doc["macAddress"] = WiFi.macAddress();
     doc["ipAddress"] = WiFi.localIP();
     serializeJson(doc, output);
-    server.send(200, "text/html", output);
+    server.send(200, "application/json", output);
+}
+
+void handleTemperatureCelcius()
+{
+    apiAuthentication();
+    String output;
+    StaticJsonDocument<16> doc;
+    doc["temperature"] = sensorDataCelsius();
+    serializeJson(doc, output);
+    server.send(200, "application/json", output);
+}
+
+void handleTemperatureFahrenheit()
+{
+    apiAuthentication();
+    String output;
+    StaticJsonDocument<16> doc;
+    doc["temperature"] = sensorDataFahrenheit();
+    serializeJson(doc, output);
+    server.send(200, "application/json", output);
+}
+
+void handleBlinkLed()
+{
+    apiAuthentication();
+    String output;
+    if (server.method() != HTTP_POST)
+    {
+        StaticJsonDocument<48> doc;
+        doc["message"] = "Invalid HTTP method";
+        serializeJson(doc, output);
+        return server.send(400, "application/json", output);
+    }
+
+    String postBody = server.arg("plain");
+    StaticJsonDocument<96> doc;
+    DeserializationError error = deserializeJson(doc, postBody);
+    if (error)
+    {
+        StaticJsonDocument<48> doc;
+        doc["message"] = "Invalid JSON";
+        serializeJson(doc, output);
+        return server.send(400, "application/json", output);
+    }
+    else
+    {
+        if (!blinkStatus)
+        {
+            blinkStatus = true;
+            blinkStatusSchedule.interval = doc["durationInMilliseconds"];
+            blinkStatusSchedule.storedMillis = millis();
+            blinkSchedule.interval = doc["intervalInMilliseconds"];
+            blinkSchedule.storedMillis = doc["intervalInMilliseconds"];
+
+            StaticJsonDocument<48> doc;
+            doc["message"] = "Blink started";
+            serializeJson(doc, output);
+            return server.send(200, "application/json", output);
+        }
+        else
+        {
+            StaticJsonDocument<48> doc;
+            doc["message"] = "Blink in-progress";
+            serializeJson(doc, output);
+            return server.send(200, "application/json", output);
+        }
+    }
 }
 
 void handleNotFound()
@@ -231,5 +359,5 @@ void handleNotFound()
     StaticJsonDocument<48> doc;
     doc["message"] = "Endpoint not found";
     serializeJson(doc, output);
-    server.send(404, "text/html", output);
+    server.send(404, "application/json", output);
 }
