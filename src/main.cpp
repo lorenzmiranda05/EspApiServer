@@ -18,6 +18,7 @@ void setup()
   server.on("/temperature/celcius", HTTP_GET, handleTemperatureCelcius);
   server.on("/temperature/fahrenheit", HTTP_GET, handleTemperatureFahrenheit);
   server.on("/blinkLed", HTTP_POST, handleBlinkLed);
+  server.on("/displayTextToLcd", HTTP_POST, handleDisplayTextToLcd);
   server.onNotFound(handleNotFound);
   server.begin();
 }
@@ -65,6 +66,19 @@ void loop()
     if (blinkStatus)
     {
       blinkStatus = false;
+    }
+  }
+
+  if (lcdDisplayStatus)
+  {
+    // Display text to LCD
+  }
+
+  if (lcdDisplayStatusSchedule.checkMillis())
+  {
+    if (lcdDisplayStatus)
+    {
+      lcdDisplayStatus = false;
     }
   }
 }

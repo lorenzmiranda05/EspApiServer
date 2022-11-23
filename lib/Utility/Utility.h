@@ -10,7 +10,7 @@
 
 #define JsonConfigFile "/config.json"
 #define OneWirePin 10
-#define LedPin D2
+#define LedPin 0
 
 ESP8266WiFiMulti WiFiMulti;
 char espName[15];
@@ -50,6 +50,15 @@ bool ledPinStatus = LOW;
 bool blinkStatus = false;
 Schedule blinkSchedule;
 Schedule blinkStatusSchedule;
+
+class DisplaySchedule : public Schedule
+{
+public:
+    char text[41];
+};
+
+bool lcdDisplayStatus = false;
+DisplaySchedule lcdDisplayStatusSchedule;
 
 void serialAndTelnetPrint(__FlashStringHelper *message)
 {
@@ -346,6 +355,52 @@ void handleBlinkLed()
         {
             StaticJsonDocument<48> doc;
             doc["message"] = "Blink in-progress";
+            serializeJson(doc, output);
+            return server.send(200, "application/json", output);
+        }
+    }
+}
+
+void handleDisplayTextToLcd()
+{
+    apiAuthentication();
+    String output;
+    if (server.method() != HTTP_POST)
+    {
+        StaticJsonDocument<48> doc;
+        doc["message"] = "Invalid HTTP method";
+        serializeJson(doc, output);
+        return server.send(400, "application/json", output);
+    }
+
+    String postBody = server.arg("plain");
+    StaticJsonDocument<96> doc;
+    DeserializationError error = deserializeJson(doc, postBody);
+    if (error)
+    {
+        StaticJsonDocument<48> doc;
+        doc["message"] = "Invalid JSON";
+        serializeJson(doc, output);
+        return server.send(400, "application/json", output);
+    }
+    else
+    {
+        if (!lcdDisplayStatus)
+        {
+            lcdDisplayStatus = true;
+            strcpy(lcdDisplayStatusSchedule.text, doc["text"]);
+            lcdDisplayStatusSchedule.interval = doc["durationInMilliseconds"];
+            lcdDisplayStatusSchedule.storedMillis = millis();
+
+            StaticJsonDocument<48> doc;
+            doc["message"] = "LCD Display started";
+            serializeJson(doc, output);
+            return server.send(200, "application/json", output);
+        }
+        else
+        {
+            StaticJsonDocument<48> doc;
+            doc["message"] = "LCD Display in-progress";
             serializeJson(doc, output);
             return server.send(200, "application/json", output);
         }
