@@ -13,6 +13,8 @@ void setup()
   broadcastSchedule.interval = 5000;
   pinMode(LedPin, OUTPUT);
   digitalWrite(LedPin, LOW);
+  lcd.noBacklight();
+  lcd.begin(Columns, Rows, LCD_5x8DOTS, I2CDataPin, I2CClockPin);
   server.on("/", handleRoot);
   server.on("/deviceDetails", HTTP_GET, handleDeviceDetails);
   server.on("/temperature/celcius", HTTP_GET, handleTemperatureCelcius);
@@ -69,16 +71,15 @@ void loop()
     }
   }
 
-  if (lcdDisplayStatus)
+  if (lcdDisplayRefreshSchedule.checkMillis())
   {
-    // Display text to LCD
+    lcd.scrollDisplayLeft();
   }
 
   if (lcdDisplayStatusSchedule.checkMillis())
   {
-    if (lcdDisplayStatus)
-    {
-      lcdDisplayStatus = false;
-    }
+    lcd.clear();
+    lcd.noBacklight();
+    lcdDisplayStatus = false;
   }
 }

@@ -7,10 +7,16 @@
 #include <ESP8266WebServer.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
 #define JsonConfigFile "/config.json"
 #define OneWirePin 10
-#define LedPin 0
+#define LedPin 12
+#define Columns 16
+#define Rows 4
+#define I2CDataPin 5
+#define I2CClockPin 4
 
 ESP8266WiFiMulti WiFiMulti;
 char espName[15];
@@ -51,14 +57,18 @@ bool blinkStatus = false;
 Schedule blinkSchedule;
 Schedule blinkStatusSchedule;
 
-class DisplaySchedule : public Schedule
+class Display
 {
 public:
-    char text[41];
+    char row1Text[41];
+    char row2Text[41];
 };
 
 bool lcdDisplayStatus = false;
-DisplaySchedule lcdDisplayStatusSchedule;
+Schedule lcdDisplayStatusSchedule;
+Schedule lcdDisplayRefreshSchedule;
+Display lcdDisplay;
+LiquidCrystal_I2C lcd(PCF8574_ADDR_A21_A11_A01, 4, 5, 6, 16, 11, 12, 13, 14, POSITIVE);
 
 void serialAndTelnetPrint(__FlashStringHelper *message)
 {
@@ -374,7 +384,7 @@ void handleDisplayTextToLcd()
     }
 
     String postBody = server.arg("plain");
-    StaticJsonDocument<96> doc;
+    StaticJsonDocument<256> doc;
     DeserializationError error = deserializeJson(doc, postBody);
     if (error)
     {
@@ -388,9 +398,19 @@ void handleDisplayTextToLcd()
         if (!lcdDisplayStatus)
         {
             lcdDisplayStatus = true;
-            strcpy(lcdDisplayStatusSchedule.text, doc["text"]);
+            strcpy(lcdDisplay.row1Text, doc["row1Text"]);
+            strcpy(lcdDisplay.row2Text, doc["row2Text"]);
             lcdDisplayStatusSchedule.interval = doc["durationInMilliseconds"];
             lcdDisplayStatusSchedule.storedMillis = millis();
+            lcdDisplayRefreshSchedule.interval = doc["refreshInMilliseconds"];
+            lcdDisplayRefreshSchedule.storedMillis = millis();
+
+            lcd.backlight();
+            lcd.home();
+            lcd.setCursor(0, 0);
+            lcd.print(lcdDisplay.row1Text);
+            lcd.setCursor(0, 1);
+            lcd.print(lcdDisplay.row2Text);
 
             StaticJsonDocument<48> doc;
             doc["message"] = "LCD Display started";
